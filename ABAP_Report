@@ -1,0 +1,108 @@
+*&---------------------------------------------------------------------*
+*& Report  ZGET_DATA_GSHEET_JOHN
+*&
+*&---------------------------------------------------------------------*
+*& Purpose : Get Data From Google Spreadsheet
+*&
+*&---------------------------------------------------------------------*
+
+REPORT ZGET_DATA_GSHEET_JOHN NO STANDARD PAGE HEADING.
+
+TABLES: ZPROD_LINE.
+DATA: lo_http_client TYPE REF TO if_http_client,
+             lv_service TYPE string.
+
+DATA : ls_pline TYPE zprod_line,
+       lt_pline TYPE STANDARD TABLE OF zprod_line.
+
+DATA: lv_result TYPE string.
+
+TYPES : BEGIN OF ty_prod,
+         invoiceid TYPE zprod_line-invoiceid,
+         productline TYPE zprod_line-productline,
+         unitprice TYPE zprod_line-unitprice,
+         quantity TYPE zprod_line-quantity,
+         datepurchase TYPE zprod_line-datepurchase,
+        END OF ty_prod.
+
+data : ls_prod type ty_prod,
+     lt_prod type standard table of ty_prod.
+
+data lr_json_deserializer type ref to cl_trex_json_deserializer.
+
+*-------------------------------------------------------------------------------*
+***This service returns the count of the entityset
+
+DATA : lv_name TYPE C LENGTH 100,
+       lv_date1 TYPE C LENGTH 20,
+       lv_date2 TYPE C LENGTH 20.
+
+SELECTION-SCREEN BEGIN OF BLOCK a01 WITH FRAME TITLE text-001.
+SELECTION-SCREEN BEGIN OF LINE.
+SELECTION-SCREEN COMMENT 1(20) text-002 FOR FIELD s_inv.
+SELECT-OPTIONS s_inv FOR zprod_line-invoiceid.
+SELECTION-SCREEN END OF LINE.
+
+SELECTION-SCREEN BEGIN OF LINE.
+SELECTION-SCREEN COMMENT 1(20) text-003 FOR FIELD s_date.
+SELECT-OPTIONS s_date FOR zprod_line-datepurchase.
+SELECTION-SCREEN END OF LINE.
+
+SELECTION-SCREEN END OF BLOCK a01.
+
+START-OF-SELECTION.
+lv_service = 'http://10.32.128.128:5000'.
+
+*** Use CL_HTTP_CLIENT to consume the OData service using the method "create_by_url"
+
+CALL METHOD cl_http_client=>create_by_url(
+     EXPORTING
+       url                = lv_service
+     IMPORTING
+       client             = lo_http_client
+     EXCEPTIONS
+       argument_not_found = 1
+       plugin_not_active  = 2
+       internal_error     = 3
+       OTHERS             = 4 ).
+
+*** Call the following method to autheticate the user/password and client for the remote connection.
+CALL METHOD LO_HTTP_CLIENT->AUTHENTICATE(
+   EXPORTING
+     CLIENT = '020'
+     USERNAME = 'ABAP01'
+     PASSWORD = 'initial1'
+     LANGUAGE = ''
+     ).
+**** Send the request
+   lo_http_client->send(
+     EXCEPTIONS
+       http_communication_failure = 1
+       http_invalid_state         = 2 ).
+
+*** Receive the respose
+  lo_http_client->receive(
+     EXCEPTIONS
+       http_communication_failure = 1
+       http_invalid_state         = 2
+       http_processing_failed     = 3 ).
+
+*** Read the result
+  CLEAR lv_result.
+   lv_result = lo_http_client->response->get_cdata( ).
+
+* deserialize JSON string json into internal table lt_flight doing camelCase to ABAP like field name mapping
+/ui2/cl_json=>deserialize( EXPORTING json = lv_result pretty_name = /ui2/cl_json=>pretty_mode-camel_case CHANGING data = lt_prod ).
+
+loop at lt_prod INTO ls_prod WHERE datepurchase IN s_date.
+  ls_pline-invoiceid = ls_prod-invoiceid.
+  ls_pline-productline = ls_prod-productline.
+  ls_pline-unitprice = ls_prod-unitprice.
+  ls_pline-quantity = ls_prod-quantity.
+  ls_pline-datepurchase = ls_prod-datepurchase.
+  MODIFY zprod_line FROM ls_pline.
+endloop.
+
+if lt_prod[] IS NOT INITIAL.
+  MESSAGE 'Data has been saved' TYPE 'S'.
+endif.

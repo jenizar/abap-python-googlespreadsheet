@@ -1,0 +1,39 @@
+function doGet(e){
+
+ // Change Spread Sheet url
+ var ss = SpreadsheetApp.openByUrl("https://docs.google.com/spreadsheets/d/1mI0LqulN9xEK88RfyNFtDlk3vjrNeKGlFFI_Trjvrjn/edit#gid=0");
+
+// Sheet Name, Chnage Sheet1 to Users in Spread Sheet. Or any other name as you wish
+ var sheet = ss.getSheetByName("Sheet1");
+  
+ return getData(sheet); 
+  
+}
+
+
+function getData(sheet){
+  var jo = {};
+  var dataArray = [];
+
+// collecting data from 2nd Row , 1st column to last row and last column
+  var rows = sheet.getRange(2,1,sheet.getLastRow()-1, sheet.getLastColumn()).getValues();
+  
+  for(var i = 0, l= rows.length; i<l ; i++){
+    var dataRow = rows[i];
+    var record = {};
+    record['InvoiceID'] = dataRow[0];
+    record['ProductLine'] = dataRow[1];
+    record['UnitPrice'] = dataRow[2];
+    record['Quantity'] = dataRow[3];
+    record['DatePurchase'] = dataRow[4];
+    
+    dataArray.push(record);
+    
+  }  
+  
+  jo = dataArray;
+  
+  var result = JSON.stringify(jo);
+  
+  return ContentService.createTextOutput(result).setMimeType(ContentService.MimeType.JSON);
+  
