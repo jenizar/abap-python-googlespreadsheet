@@ -36,4 +36,4 @@ function getData(sheet){
   var result = JSON.stringify(jo);
   
   return ContentService.createTextOutput(result).setMimeType(ContentService.MimeType.JSON);
-  
+  }
