@@ -18,3 +18,7 @@ Who has access to the app: - Anyone, even anonymus
 
 the output:
 [{"InvoiceID":"123-19-1176","ProductLine":"HEALTH AND BEAUTY","UnitPrice":58.22,"Quantity":3,"DatePurchase":20190901}, . .{ }]
+
+References:
+1. https://github.com/jenizar/Google-Spreadsheet-Export-Data-to-MySQL-Database
+2. https://stackoverflow.com/questions/31728937/render-json-without-replacing-characters-in-jinja/31729295#31729295
